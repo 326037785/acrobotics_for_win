@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.spatial.transform import Rotation, Slerp
 
-from acrolib.geometry import rpy_to_rot_mat
-from acrolib.quaternion import Quaternion
+from acrobotics.acrolib.geometry import rpy_to_rot_mat
+from acrobotics.acrolib.quaternion import Quaternion
 
 from acrobotics.path.tolerance import NoTolerance, SymmetricTolerance, Tolerance
 from acrobotics.path.path_pt import TolEulerPt

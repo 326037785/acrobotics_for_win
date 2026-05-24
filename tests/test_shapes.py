@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 from numpy.testing import assert_almost_equal
-from acrolib.geometry import rot_z, rot_y
+from acrobotics.acrolib.geometry import rot_z, rot_y
 
 from acrobotics.shapes import Box, Cylinder
 
@@ -141,15 +141,32 @@ class TestShape:
         T5 = pose_z(np.pi / 4, -2, -2, 0)
         assert b4.is_in_collision(T4, b5, T5) == False
 
+    def test_path_in_collision_with_thin_obstacle(self):
+        moving = Box(0.1, 0.1, 0.1)
+        obstacle = Box(0.01, 1.0, 1.0)
+        tf_start = pose_z(0, -1, 0, 0)
+        tf_target = pose_z(0, 1, 0, 0)
+
+        assert moving.is_path_in_collision(
+            tf_start, tf_target, obstacle, tf_identity
+        )
+
     def test_plot(self):
         b1 = Box(1, 2, 3)
         fig = plt.figure()
-        ax = fig.gca(projection="3d")
+        ax = fig.add_subplot(projection="3d")
         b1.plot(ax, tf_identity)
         assert True
 
 
 class TestCylinder:
+    def test_is_in_collision(self):
+        cyl = Cylinder(1, 2)
+        box = Box(0.2, 0.2, 0.2)
+
+        assert cyl.is_in_collision(tf_identity, box, tf_identity)
+        assert not cyl.is_in_collision(tf_identity, box, pose_z(0, 2, 0, 0))
+
     def test_4_faces(self):
         cyl = Cylinder(1, 2, approx_faces=4)
 
@@ -235,7 +252,7 @@ class TestCylinder:
         cyl = Cylinder(1, 2)
 
         fig = plt.figure()
-        ax = fig.gca(projection="3d")
+        ax = fig.add_subplot(projection="3d")
 
         tf = np.eye(4)
         tf[:3, 3] = np.array([0, 5, -3])

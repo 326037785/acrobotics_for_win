@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 from numpy.testing import assert_almost_equal
-from acrolib.geometry import pose_x
+from acrobotics.acrolib.geometry import pose_x
 from acrobotics.robot_examples import (
     PlanarArm,
     SphericalArm,
@@ -125,6 +125,6 @@ class TestPlotKinematics:
         robot = Kuka()
 
         fig = plt.figure()
-        ax = fig.gca(projection="3d")
+        ax = fig.add_subplot(projection="3d")
         robot.plot_kinematics(ax, np.ones(robot.ndof))
         # plt.show(block=True)

@@ -3,14 +3,14 @@ import numpy as np
 from copy import deepcopy
 from typing import List
 
-from acrolib.dynamic_programming import shortest_path, shortest_path_with_state_cost
-from acrolib.cost_functions import (  # pylint: disable=no-name-in-module
+from acrobotics.acrolib.dynamic_programming import shortest_path, shortest_path_with_state_cost
+from acrobotics.acrolib.cost_functions import (  # pylint: disable=no-name-in-module
     norm_l1,
     norm_l2,
     sum_squared,
     weighted_sum_squared,
 )
-from acrolib.quaternion import Quaternion
+from acrobotics.acrolib.quaternion import Quaternion
 
 from ..path.path_pt_base import PathPt
 from ..path.path_pt import TolPositionPt, TolEulerPt, TolQuatPt

@@ -1,6 +1,6 @@
 import numpy as np
 from .ik_result import IKResult
-from acrolib.geometry import rotation_matrix_to_rpy
+from acrobotics.acrolib.geometry import rotation_matrix_to_rpy
 
 TOLERANCE = 1e-12
 

@@ -2,9 +2,9 @@ import numpy as np
 import acrobotics as ab
 import matplotlib.pyplot as plt
 
-from acrolib.quaternion import Quaternion
-from acrolib.sampling import SampleMethod
-from acrolib.plotting import get_default_axes3d
+from acrobotics.acrolib.quaternion import Quaternion
+from acrobotics.acrolib.sampling import SampleMethod
+from acrobotics.acrolib.plotting import get_default_axes3d
 
 from acrobotics.robot import Robot
 

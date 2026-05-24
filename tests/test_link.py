@@ -80,5 +80,5 @@ class TestLink:
         link1 = Link(dh_params, JointType.revolute, geometry)
 
         fig = plt.figure()
-        ax = fig.gca(projection="3d")
+        ax = fig.add_subplot(projection="3d")
         link1.plot(ax, np.eye(4))

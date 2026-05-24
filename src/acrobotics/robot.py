@@ -7,7 +7,7 @@ from matplotlib import animation
 from typing import List, Callable
 from acrobotics.geometry import Scene
 from acrobotics.link import Link
-from acrolib.plotting import plot_reference_frame
+from acrobotics.acrolib.plotting import plot_reference_frame
 
 JointLimit = namedtuple("JointLimit", ["lower", "upper"])
 
@@ -231,7 +231,7 @@ class Robot(RobotKinematics, RobotCasadiKinematics):
         q_start, q_goal = np.array(q_start), np.array(q_goal)
 
         q_diff = np.linalg.norm(q_goal - q_start)
-        num_steps = int(np.ceil(q_diff / max_q_step))
+        num_steps = max(2, int(np.ceil(q_diff / max_q_step)) + 1)
 
         S = np.linspace(0, 1, num_steps)
         return [(1 - s) * q_start + s * q_goal for s in S]
@@ -283,21 +283,14 @@ class Robot(RobotKinematics, RobotCasadiKinematics):
         return False
 
     def is_path_in_collision(self, q_start, q_goal, collection: Scene):
-        """ Check for collision using the continuous collision checking
-        stuff from fcl.
+        """Check for collision along a sampled joint-space segment.
+
+        Pose interpolation between nearby joint samples is checked by each
+        Scene so thin obstacles are not missed between robot configurations.
         - We do not check for self collision on a path.
         - Base is assumed not to move.
         """
         geom_links = [l.geometry for l in self.links]
-        tf_links = self.fk_all_links(q_start)
-        tf_links_target = self.fk_all_links(q_goal)
-
-        # check collision with tool first
-        if self.geometry_tool is not None:
-            if self.geometry_tool.is_path_in_collision(
-                tf_links[-1], tf_links_target[-1], collection
-            ):
-                return True
 
         # Base is assumed to be always fixed
         base = self.geometry_base
@@ -305,15 +298,25 @@ class Robot(RobotKinematics, RobotCasadiKinematics):
             if base.is_in_collision(collection, tf_self=self.tf_base):
                 return True
 
-        # check collision for all links
-        for i in self.collision_priority:
-            if geom_links[i].is_path_in_collision(
-                tf_links[i], tf_links_target[i], collection
-            ):
-                # move current index to front of priority list
-                self.collision_priority.remove(i)
-                self.collision_priority.insert(0, i)
-                return True
+        # Link motion is curved in Cartesian space. Bound that approximation
+        # with nearby joint samples, then sweep between the resulting poses.
+        q_path = self._linear_interpolation_path(q_start, q_goal, 0.05)
+        tf_previous = self.fk_all_links(q_path[0])
+        for q in q_path[1:]:
+            tf_links = self.fk_all_links(q)
+            if self.geometry_tool is not None:
+                if self.geometry_tool.is_path_in_collision(
+                    tf_previous[-1], tf_links[-1], collection
+                ):
+                    return True
+            for i in self.collision_priority:
+                if geom_links[i].is_path_in_collision(
+                    tf_previous[i], tf_links[i], collection
+                ):
+                    self.collision_priority.remove(i)
+                    self.collision_priority.insert(0, i)
+                    return True
+            tf_previous = tf_links
         return False
 
     def plot(self, ax, q, *arg, **kwarg):

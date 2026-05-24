@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 from numpy.testing import assert_almost_equal
-from acrolib.geometry import pose_x
+from acrobotics.acrolib.geometry import pose_x, translation
 from acrobotics.robot import Robot
 from acrobotics.robot_examples import Kuka
+from acrobotics.link import DHLink, JointType, Link
 from acrobotics.geometry import Scene
 from acrobotics.shapes import Box
 from .fk_implementations import FKImplementations as fki
@@ -39,3 +40,12 @@ class TestCollisionChecking:
         assert a1 is True
         a2 = bot.is_in_collision(q0, obj2)
         assert a2 is False
+
+    def test_path_collision_detects_thin_obstacle_between_joint_samples(self):
+        moving = Scene([Box(0.1, 0.1, 0.001)], [np.eye(4)])
+        link = Link(DHLink(0, 0, 0, 0), JointType.prismatic, moving)
+        bot = Robot([link])
+        bot.do_check_self_collision = False
+        obstacle = Scene([Box(0.1, 0.1, 0.001)], [translation(0, 0, 0.005)])
+
+        assert bot.is_path_in_collision([0.0], [0.02], obstacle)

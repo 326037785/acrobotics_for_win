@@ -1,5 +1,5 @@
 import numpy as np
-from acrolib.geometry import translation, pose_x
+from acrobotics.acrolib.geometry import translation, pose_x
 
 from .robot import Robot, Tool, JointLimit
 from .link import Link, DHLink, JointType

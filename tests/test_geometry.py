@@ -63,7 +63,7 @@ class TestScene:
         soup = Scene([Box(1, 1, 1), Box(2, 2, 0.5)], [tf_identity, tf2])
 
         fig = plt.figure()
-        ax = fig.gca(projection="3d")
+        ax = fig.add_subplot(projection="3d")
         ax.set_xlim([0, 10])
         ax.set_ylim([-5, 5])
         ax.set_zlim([-5, 5])

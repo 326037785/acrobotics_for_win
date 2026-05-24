@@ -1,13 +1,13 @@
-import fcl
 import numpy as np
 
 from abc import ABC, abstractmethod
 from collections import namedtuple
+from scipy.spatial.transform import Rotation, Slerp
 
 
 def transform_vector(tf, vector):
     """ Transform a vector with a homogeneous transform matrix tf.
-    TODO move this to acrolib.geometry or acrobotics.util?
+    TODO move this to acrobotics.acrolib.geometry or acrobotics.util?
     """
     return np.dot(tf[:3, :3], vector) + tf[:3, 3]
 
@@ -15,11 +15,79 @@ def transform_vector(tf, vector):
 Polyhedron = namedtuple("Polyhedron", ["A", "b"])
 
 
+def _unit_axes(candidates):
+    """Return nonzero, nonparallel separating axes."""
+    axes = []
+    for candidate in candidates:
+        length = np.linalg.norm(candidate)
+        if length <= 1e-12:
+            continue
+        axis = candidate / length
+        if any(abs(np.dot(axis, existing)) > 1.0 - 1e-10 for existing in axes):
+            continue
+        axes.append(axis)
+    return axes
+
+
+def _edge_directions(shape, tf):
+    edges = shape.get_edges(tf)
+    return edges[:, 3:] - edges[:, :3]
+
+
+def _collision_axes(shape1, tf1, shape2, tf2):
+    edges1 = _unit_axes(_edge_directions(shape1, tf1))
+    edges2 = _unit_axes(_edge_directions(shape2, tf2))
+    edge_cross_products = [
+        np.cross(edge1, edge2) for edge1 in edges1 for edge2 in edges2
+    ]
+    candidates = _unit_axes(
+        list(shape1.get_normals(tf1)) + list(shape2.get_normals(tf2))
+    )
+    candidates.extend(edge_cross_products)
+    return _unit_axes(candidates)
+
+
+def _convex_shapes_collide(shape1, tf1, shape2, tf2):
+    """Check two convex polyhedra using the separating axis theorem."""
+    vertices1 = shape1.get_vertices(tf1)
+    vertices2 = shape2.get_vertices(tf2)
+    for axis in _collision_axes(shape1, tf1, shape2, tf2):
+        projection1 = vertices1 @ axis
+        projection2 = vertices2 @ axis
+        if (
+            projection1.max() < projection2.min() - 1e-10
+            or projection2.max() < projection1.min() - 1e-10
+        ):
+            return False
+    return True
+
+
+def _minimum_edge_length(shape, tf):
+    lengths = np.linalg.norm(_edge_directions(shape, tf), axis=1)
+    lengths = lengths[lengths > 1e-12]
+    return lengths.min()
+
+
+def _interpolated_transforms(tf_start, tf_target, num_steps):
+    fractions = np.linspace(0.0, 1.0, num_steps + 1)
+    key_rotations = Rotation.from_matrix([tf_start[:3, :3], tf_target[:3, :3]])
+    rotations = Slerp([0.0, 1.0], key_rotations)(fractions).as_matrix()
+    translations = (
+        (1.0 - fractions[:, None]) * tf_start[:3, 3]
+        + fractions[:, None] * tf_target[:3, 3]
+    )
+    for rotation, translation in zip(rotations, translations):
+        tf = np.eye(4)
+        tf[:3, :3] = rotation
+        tf[:3, 3] = translation
+        yield tf
+
+
 class Shape(ABC):
     """ Shape for visualization and collision checking.
 
-    Wraps around an fcl_shape for collision checking.
-    Generated vertices and edges for plotting.
+    Convex shapes use their vertices, edges, and face normals both for
+    plotting and collision checking.
 
     A Shape has no inherent position! You always have to specify
     a transform when you want something from a shape.
@@ -29,11 +97,6 @@ class Shape(ABC):
     """
 
     num_edges: int
-    fcl_shape: fcl.CollisionGeometry
-    request: fcl.CollisionRequest
-    result: fcl.CollisionResult
-    c_req: fcl.ContinuousCollisionRequest
-    c_res: fcl.ContinuousCollisionResult
 
     @abstractmethod
     def get_vertices(self, transform: np.ndarray) -> np.ndarray:
@@ -49,30 +112,25 @@ class Shape(ABC):
 
     def is_in_collision(self, tf, other, tf_other):
         """ Collision checking with another shape for the given transforms. """
-        fcl_tf_1 = fcl.Transform(tf[:3, :3], tf[:3, 3])
-        fcl_tf_2 = fcl.Transform(tf_other[:3, :3], tf_other[:3, 3])
-
-        o1 = fcl.CollisionObject(self.fcl_shape, fcl_tf_1)
-        o2 = fcl.CollisionObject(other.fcl_shape, fcl_tf_2)
-
-        return fcl.collide(o1, o2, self.request, self.result)
+        return _convex_shapes_collide(self, tf, other, tf_other)
 
     def is_path_in_collision(self, tf, tf_target, other, tf_other):
+        """Check a linearly interpolated pose path at geometry-scaled steps."""
+        vertices_start = self.get_vertices(tf)
+        vertices_target = self.get_vertices(tf_target)
+        max_vertex_motion = np.linalg.norm(
+            vertices_target - vertices_start, axis=1
+        ).max()
+        feature_size = min(
+            _minimum_edge_length(self, tf), _minimum_edge_length(other, tf_other)
+        )
+        step_size = max(feature_size / 4.0, 1e-8)
+        num_steps = max(1, int(np.ceil(max_vertex_motion / step_size)))
 
-        # assert np.sum(np.abs(tf - tf_target)) > 1e-12
-
-        fcl_tf_1 = fcl.Transform(tf[:3, :3], tf[:3, 3])
-        fcl_tf_2 = fcl.Transform(tf_other[:3, :3], tf_other[:3, 3])
-
-        fcl_tf_1_target = fcl.Transform(tf_target[:3, :3], tf_target[:3, 3])
-
-        o1 = fcl.CollisionObject(self.fcl_shape, fcl_tf_1)
-        o2 = fcl.CollisionObject(other.fcl_shape, fcl_tf_2)
-
-        self.c_req.ccd_motion_type = fcl.CCDMotionType.CCDM_LINEAR
-
-        fcl.continuousCollide(o1, fcl_tf_1_target, o2, fcl_tf_2, self.c_req, self.c_res)
-        return self.c_res.is_collide
+        for tf_sample in _interpolated_transforms(tf, tf_target, num_steps):
+            if self.is_in_collision(tf_sample, other, tf_other):
+                return True
+        return False
 
     def get_empty_plot_lines(self, ax, *arg, **kwarg):
         """ Create empty lines to initialize an animation """
@@ -107,11 +165,6 @@ class Box(Shape):
         self.dy = dy
         self.dz = dz
         self.num_edges = 12
-        self.fcl_shape = fcl.Box(dx, dy, dz)
-        self.request = fcl.CollisionRequest()
-        self.result = fcl.CollisionResult()
-        self.c_req = fcl.ContinuousCollisionRequest()
-        self.c_res = fcl.ContinuousCollisionResult()
 
     def get_vertices(self, tf):
         v = np.zeros((8, 3))
@@ -185,11 +238,6 @@ class Cylinder(Shape):
         # the number of faces to use in the polyherdron approximation
         self.nfac = approx_faces
         self.num_edges = 3 * self.nfac
-        self.fcl_shape = fcl.Cylinder(radius, length)
-        self.request = fcl.CollisionRequest()
-        self.result = fcl.CollisionResult()
-        self.c_req = fcl.ContinuousCollisionRequest()
-        self.c_res = fcl.ContinuousCollisionResult()
 
     def get_vertices(self, tf):
         v = np.zeros((2 * self.nfac, 3))

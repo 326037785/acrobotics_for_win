@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from acrolib.quaternion import Quaternion
+from acrobotics.acrolib.quaternion import Quaternion
 
 from acrobotics.path.factory import create_line, create_arc
 from acrobotics.path.path_pt import TolPositionPt, TolEulerPt

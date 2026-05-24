@@ -1,5 +1,5 @@
 import enum
-from acrolib.sampling import SampleMethod
+from acrobotics.acrolib.sampling import SampleMethod
 
 
 class SearchStrategy(enum.Enum):

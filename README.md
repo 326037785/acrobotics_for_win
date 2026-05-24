@@ -20,15 +20,23 @@ Or for development
 ```bash
 git clone https://github.com/JeroenDM/acrobotics.git
 cd acrobotics
-python setup.py develop
+python -m pip install -e ".[dev]"
 ```
 
-No Windows support for the moment because [python-fcl](https://pypi.org/project/python-fcl/) is not supported. :(
-In the future I will possibly switch to [pybullet](https://pypi.org/project/pybullet/). In the meantime, use [windows subsystem for linux](https://docs.microsoft.com/en-us/windows/wsl/install-win10). MacOS is not tested yet.
+Collision checking is implemented in NumPy and SciPy without a native
+`python-fcl` dependency, so installation is supported on Windows as well as
+Linux and macOS. `Box` collision checks are convex polyhedron tests.
+`Cylinder` collision checks use the polygonal approximation configured by
+`approx_faces`. Swept collision checks sample the interpolated pose path with
+step sizes scaled to the colliding geometry. The small helper API formerly
+supplied by `acrolib` is bundled under `acrobotics.acrolib`, avoiding its
+legacy build dependency and conflicts with old installed versions.
 
 ## Gettings started
 
-(Code for example below: [examples/getting_started.py](examples/getting_started.py))
+(Code for example below: [examples/getting_started.py](examples/getting_started.py).
+Additional scripts designed for VS Code step debugging are listed in
+[examples/README.md](examples/README.md).)
 
 This library has three main tricks.
 
@@ -67,7 +75,7 @@ Inverse kinematics successful? True
 
 First create a planning scene with obstacles the robot can collide with.
 ```python
-from acrolib.geometry import translation
+from acrobotics.acrolib.geometry import translation
 
 table = ab.Box(2, 2, 0.1)
 T_table = translation(0, 0, -0.2)
@@ -100,7 +108,7 @@ print([robot.is_in_collision(q, scene) for q in q_path])
 `robot.animate_path(figure_handle, axes_handle, joint_path)`
 
 ```python
-from acrolib.plotting import get_default_axes3d
+from acrobotics.acrolib.plotting import get_default_axes3d
 
 fig, ax = get_default_axes3d()
 
@@ -123,6 +131,13 @@ For more advanced classes, such as `Robot` to create a custom robot, you have to
 from acrobotics.robot import Robot
 from acrobotics.link import DHLink, JointType, Link
 ```
+
+## Writing tests and experiments
+
+After installing the repository in editable mode, files under `tests/` can
+import `acrobotics` normally on Windows and other supported platforms. See
+[docs/writing_tests.md](docs/writing_tests.md) for a minimal test example,
+commands, and advice for experiment scripts.
 
 ## And motion planning?
 

@@ -3,6 +3,8 @@ from setuptools import setup, find_packages
 with open("requirements.txt") as f:
     requirements = f.read().splitlines()
 
+dev_requirements = ["pytest", "pytest-cov", "codecov"]
+
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
@@ -17,6 +19,7 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages(where="src"),
     install_requires=requirements,
+    extras_require={"dev": dev_requirements},
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",

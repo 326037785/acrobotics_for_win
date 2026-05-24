@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from acrolib.plotting import get_default_axes3d, plot_reference_frame
+from acrobotics.acrolib.plotting import get_default_axes3d, plot_reference_frame
 from acrobotics.tool_examples import torch, torch2, torch3
 
 

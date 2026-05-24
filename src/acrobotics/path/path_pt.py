@@ -2,9 +2,9 @@ import numpy as np
 from typing import List
 from abc import ABC, abstractmethod
 
-from acrolib.sampling import Sampler, SampleMethod
-from acrolib.quaternion import Quaternion
-from acrolib.geometry import (
+from acrobotics.acrolib.sampling import Sampler, SampleMethod
+from acrobotics.acrolib.quaternion import Quaternion
+from acrobotics.acrolib.geometry import (
     rpy_to_rot_mat,
     rotation_matrix_to_rpy,
     tf_inverse,

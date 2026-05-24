@@ -2,9 +2,9 @@ import pytest
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from acrolib.quaternion import Quaternion
-from acrolib.sampling import SampleMethod
-from acrolib.geometry import rotation_matrix_to_rpy
+from acrobotics.acrolib.quaternion import Quaternion
+from acrobotics.acrolib.sampling import SampleMethod
+from acrobotics.acrolib.geometry import rotation_matrix_to_rpy
 
 from acrobotics.robot import Robot, IKResult
 

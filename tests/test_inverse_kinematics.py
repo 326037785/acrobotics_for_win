@@ -9,7 +9,7 @@ from acrobotics.robot_examples import (
     KukaOnRail,
     PlanarArm,
 )
-from acrolib.geometry import pose_x
+from acrobotics.acrolib.geometry import pose_x
 
 PI = np.pi
 

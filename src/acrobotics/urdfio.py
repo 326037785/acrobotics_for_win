@@ -1,7 +1,8 @@
 import numpy as np
 from string import Template
-from urdfpy import URDF
-from acrolib.geometry import rotation_matrix_to_rpy
+from pathlib import Path
+from xml.etree import ElementTree
+from acrobotics.acrolib.geometry import rotation_matrix_to_rpy, rpy_to_rot_mat
 
 from acrobotics.shapes import Box
 from acrobotics.geometry import Scene
@@ -107,8 +108,9 @@ def export_urdf(scene, name, path):
         content += _box_template.substitute(box) + "\n"
         content += _joint_template.substitute(box) + "\n"
 
-        with open("{}/{}".format(path, name), "w") as file:
-            file.write(_urdf_template.substitute({"name": name, "content": content}))
+    output_path = Path(path) / name
+    with output_path.open("w") as file:
+        file.write(_urdf_template.substitute({"name": name, "content": content}))
 
 
 def parse_link(link):
@@ -118,13 +120,13 @@ def parse_link(link):
     
     Parameters
     ----------
-    link: a urdfpy.urdf.Link object
+    link: an xml.etree.ElementTree link element
     """
-    assert len(link.collisions) == 1
-    c = link.collisions[0]
-    assert c.geometry.box is not None
-
-    size = c.geometry.box.size
+    collisions = link.findall("collision")
+    assert len(collisions) == 1
+    box = collisions[0].find("./geometry/box")
+    assert box is not None
+    size = np.fromstring(box.attrib["size"], sep=" ")
     return Box(size[0], size[1], size[2])
 
 
@@ -133,20 +135,34 @@ def import_urdf(name, path):
     if not name.endswith(".urdf"):
         name += ".urdf"
 
-    urdf = URDF.load("{}/{}".format(path, name))
-    root = urdf.base_link.name
+    robot = ElementTree.parse(Path(path) / name).getroot()
+    joints = robot.findall("joint")
+    child_links = {joint.find("child").attrib["link"] for joint in joints}
+    root_links = [
+        link.attrib["name"]
+        for link in robot.findall("link")
+        if link.attrib["name"] not in child_links
+    ]
+    assert len(root_links) == 1
+    root = root_links[0]
 
     shapes = {}
-    for link in urdf.links:
-        if len(link.collisions) == 0:
+    for link in robot.findall("link"):
+        if len(link.findall("collision")) == 0:
             continue
         else:
-            shapes[link.name] = parse_link(link)
+            shapes[link.attrib["name"]] = parse_link(link)
 
     tfs = []
     final_shapes = []
-    for joint in urdf.joints:
-        if joint.parent == root:
-            tfs.append(joint.origin)
-            final_shapes.append(shapes[joint.child])
+    for joint in joints:
+        if joint.find("parent").attrib["link"] == root:
+            origin = joint.find("origin")
+            tf = np.eye(4)
+            tf[:3, 3] = np.fromstring(origin.attrib.get("xyz", "0 0 0"), sep=" ")
+            tf[:3, :3] = rpy_to_rot_mat(
+                np.fromstring(origin.attrib.get("rpy", "0 0 0"), sep=" ")
+            )
+            tfs.append(tf)
+            final_shapes.append(shapes[joint.find("child").attrib["link"]])
     return Scene(final_shapes, tfs)

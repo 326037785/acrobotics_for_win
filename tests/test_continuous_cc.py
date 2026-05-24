@@ -4,12 +4,11 @@
 Try continous collision checking for a simple path through an obstacle.
 """
 import time
-import fcl
 import numpy as np
 import matplotlib.pyplot as plt
 
-from acrolib.plotting import get_default_axes3d, plot_reference_frame
-from acrolib.geometry import translation
+from acrobotics.acrolib.plotting import get_default_axes3d, plot_reference_frame
+from acrobotics.acrolib.geometry import translation
 
 from acrobotics.robot_examples import Kuka
 from acrobotics.tool_examples import torch2

@@ -5,9 +5,9 @@ import acrobotics as ab
 # import matplotlib.pyplot as plt
 
 from numpy.testing import assert_almost_equal
-from acrolib.quaternion import Quaternion
-from acrolib.sampling import SampleMethod
-from acrolib.plotting import get_default_axes3d, plot_reference_frame
+from acrobotics.acrolib.quaternion import Quaternion
+from acrobotics.acrolib.sampling import SampleMethod
+from acrobotics.acrolib.plotting import get_default_axes3d, plot_reference_frame
 from acrobotics.robot import Robot
 
 

@@ -1,12 +1,6 @@
 numpy
 matplotlib
 scipy
-urdfpy
-acrolib
-python-fcl
 casadi
 pyquaternion
 tqdm
-pytest
-pytest-cov
-codecov

@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import List
 from numpy.linalg import norm
 
-from acrolib.quaternion import Quaternion
+from acrobotics.acrolib.quaternion import Quaternion
 
 from .path_pt import TolPositionPt, PathPt
 

@@ -2,8 +2,8 @@ import numpy as np
 from typing import List
 from abc import ABC, abstractmethod
 
-from acrolib.sampling import Sampler, SampleMethod
-from acrolib.quaternion import Quaternion
+from acrobotics.acrolib.sampling import Sampler, SampleMethod
+from acrobotics.acrolib.quaternion import Quaternion
 
 from acrobotics.robot import Robot
 from acrobotics.geometry import Scene
